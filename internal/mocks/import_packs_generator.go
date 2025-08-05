@@ -46,6 +46,10 @@ func (g *InputPacksGenerator) Start(cfg *config.XisDataAggregatorConfig) {
 
 		case <-g.StopChan:
 			glog.Infoln("Pack generator stopping.")
+
+			// Close data channel for stop readers/consumers.
+			close(g.OutputChan)
+
 			return
 		}
 	}
