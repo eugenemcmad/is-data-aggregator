@@ -76,8 +76,8 @@ func main() {
 	 * Note: It is a good practice to additionally intercept system interrupts
 	 * for correct system shutdown:
 	 *
-	 * sysChan := make(chan os.Signal)
-	 * signal.Notify(sgnChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+	 * sigChan := make(chan os.Signal)
+	 * signal.Notify(sigChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	 */
 
 	// Use a WaitGroup to manage goroutines and ensure clean shutdown
@@ -148,5 +148,4 @@ func main() {
 	 */
 	glog.Infoln("Sending stop signal to generator...")
 	close(stopChan) // Send signals to all readers.
-
 }
