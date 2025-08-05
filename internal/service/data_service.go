@@ -2,8 +2,9 @@ package service
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"xis-data-aggregator/internal/models"
+
+	"github.com/google/uuid"
 )
 
 var (

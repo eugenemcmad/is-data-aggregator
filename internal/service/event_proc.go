@@ -2,9 +2,10 @@ package service
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"sync"
 	"xis-data-aggregator/internal/models"
+
+	"github.com/golang/glog"
 )
 
 var closeOnce sync.Once

@@ -1,24 +1,27 @@
+// Package api contains tests for data mapping between internal models and protobuf representations.
 package api
 
 import (
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 	"xis-data-aggregator/internal/models"
 	"xis-data-aggregator/pb"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
+// TestDataToProto tests the DataToProto function for converting models.Data to pb.Data.
 func TestDataToProto(t *testing.T) {
 	id1 := uuid.New()
 
-	// Определяем тестовые случаи
+	// Define test cases for DataToProto
 	tests := []struct {
-		name    string
-		input   *models.Data
-		want    *pb.Data
-		wantErr bool
-		errMsg  string // Ожидаемое сообщение об ошибке
+		name    string       // Name of the test case
+		input   *models.Data // Input data
+		want    *pb.Data     // Expected protobuf output
+		wantErr bool         // Whether an error is expected
+		errMsg  string       // Expected error message substring
 	}{
 		{
 			name: "Successful conversion",
@@ -62,18 +65,19 @@ func TestDataToProto(t *testing.T) {
 	}
 }
 
+// TestProtoToData tests the ProtoToData function for converting pb.Data to models.Data.
 func TestProtoToData(t *testing.T) {
 	// Generate UUIDs for test cases
 	validUUID1 := uuid.New()
 	validUUID2 := uuid.New()
 
-	// Define test cases
+	// Define test cases for ProtoToData
 	tests := []struct {
-		name    string
-		input   *pb.Data
-		want    *models.Data
-		wantErr bool
-		errMsg  string // Expected substring in the error message
+		name    string       // Name of the test case
+		input   *pb.Data     // Input protobuf data
+		want    *models.Data // Expected internal model output
+		wantErr bool         // Whether an error is expected
+		errMsg  string       // Expected error message substring
 	}{
 		{
 			name: "Successful conversion with valid UUID",

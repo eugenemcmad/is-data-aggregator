@@ -1,24 +1,30 @@
+// Package mocks provides mock data generators for testing and development purposes.
 package mocks
 
 import (
 	"errors"
-	"github.com/golang/glog"
-	"github.com/google/uuid"
 	"math/rand"
 	"time"
 	"xis-data-aggregator/config"
 	"xis-data-aggregator/internal/models"
+
+	"github.com/golang/glog"
+	"github.com/google/uuid"
 )
 
+// valueLimit defines the upper bound for generated random values in packs.
 const valueLimit = 1000 // limitations for ease of interpretation of results
 
+// InputPacksGenerator generates mock Pack data at regular intervals and sends them to an output channel.
 type InputPacksGenerator struct {
-	Interval   time.Duration
-	PackLength int
-	OutputChan chan<- *models.Pack // Channel for output
-	StopChan   chan struct{}       // Channel for stopping
+	Interval   time.Duration       // Time interval between generated packs
+	PackLength int                 // Number of data points in each generated pack
+	OutputChan chan<- *models.Pack // Channel for outputting generated packs
+	StopChan   chan struct{}       // Channel to signal generator to stop
 }
 
+// Start begins generating packs at the specified interval until StopChan is closed.
+// Packs are sent to OutputChan. Logs errors and debug info as appropriate.
 func (g *InputPacksGenerator) Start(cfg *config.XisDataAggregatorConfig) {
 	ticker := time.NewTicker(g.Interval)
 	defer ticker.Stop()
@@ -44,15 +50,17 @@ func (g *InputPacksGenerator) Start(cfg *config.XisDataAggregatorConfig) {
 	}
 }
 
+// GeneratePack creates a new Pack with a unique ID, current timestamp, and a slice of random integers.
+// Returns an error if dataLength is not positive.
 func GeneratePack(dataLength int) (*models.Pack, error) {
 	if dataLength <= 0 {
 		return nil, errors.New("dataLength must be a positive integer")
 	}
 
-	// Generate uniq UUID
+	// Generate uniq UUID for the pack
 	id := uuid.New()
 
-	// Set Timestamp (Unix nanoseconds for high precision)
+	// Set Timestamp (Unix microseconds for high precision)
 	timestamp := time.Now().UnixMicro()
 
 	// Generate Data slice of random integers

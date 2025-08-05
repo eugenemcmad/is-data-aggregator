@@ -1,18 +1,33 @@
+// Package utils provides utility functions for error handling and data manipulation.
+// This package contains helper functions for creating formatted errors, handling panics,
+// and managing slice operations.
 package utils
 
 import "testing"
 
+// TestMaxValue tests the GetMaxValue function with various test cases.
+// This test uses table-driven tests to verify the function works correctly
+// with different input scenarios including empty slices, positive numbers,
+// negative numbers, mixed numbers, single elements, and duplicate values.
+//
+// Test cases include:
+//   - Empty slice: should return error
+//   - Positive numbers: should find maximum positive value
+//   - Negative numbers: should find maximum negative value (closest to zero)
+//   - Mixed numbers: should find maximum value regardless of sign
+//   - Single element: should return that element
+//   - Duplicate max value: should return the maximum value even if duplicated
 func TestMaxValue(t *testing.T) {
-	// Test Cases struct
+	// Test Cases struct defines the structure for each test case
 	type testCase struct {
-		name    string // Case name
-		slice   []int  // Target object
-		want    int    // Expected value
-		wantErr bool   // Error expected
-		errMsg  string // Expected error message
+		name    string // Case name for identification
+		slice   []int  // Target slice to test
+		want    int    // Expected maximum value
+		wantErr bool   // Whether an error is expected
+		errMsg  string // Expected error message if error is expected
 	}
 
-	// Tables of test cases
+	// Tables of test cases covering various scenarios
 	tests := []testCase{
 		{
 			name:    "Empty slice",

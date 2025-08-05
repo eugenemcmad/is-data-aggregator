@@ -1,3 +1,4 @@
+// Package grpc provides the gRPC server implementation for the DataService.
 package grpc
 
 import (
@@ -18,26 +19,29 @@ import (
 	"github.com/google/uuid"
 )
 
-// DataServiceServer implements the gRPC DataService interface
+// DataServiceServer implements the gRPC DataService interface.
 type DataServiceServer struct {
-	pb.UnimplementedDataServiceServer
-	service *service.DataService
+	pb.UnimplementedDataServiceServer                      // Embeds unimplemented server for forward compatibility
+	service                           *service.DataService // Business logic service
 }
 
-// NewDataServiceServer creates a new gRPC server instance
+// NewDataServiceServer creates a new gRPC DataServiceServer instance.
+// Takes a pointer to the business logic service.
 func NewDataServiceServer(service *service.DataService) *DataServiceServer {
 	return &DataServiceServer{
 		service: service,
 	}
 }
 
-// RegisterDataServiceServer registers the gRPC service with the server
+// RegisterDataServiceServer registers the DataServiceServer with the given gRPC server.
 func RegisterDataServiceServer(s *grpc.Server, service *service.DataService) {
 	server := NewDataServiceServer(service)
 	pb.RegisterDataServiceServer(s, server)
 }
 
-// GetDataById handles bidirectional streaming for getting data by ID
+// GetDataById handles bidirectional streaming for getting data by ID.
+// Receives requests with IDs from the client, fetches data, and streams responses back.
+// Returns a gRPC error if the request is invalid or if data is not found.
 func (s *DataServiceServer) GetDataById(stream pb.DataService_GetDataByIdServer) error {
 	glog.Infoln("GetDataById stream started")
 	defer glog.Infoln("GetDataById stream ended")
@@ -59,14 +63,14 @@ func (s *DataServiceServer) GetDataById(stream pb.DataService_GetDataByIdServer)
 			return status.Errorf(codes.InvalidArgument, "ID cannot be empty")
 		}
 
-		// Parse UUID
+		// Parse UUID from request
 		id, err := uuid.Parse(req.Id)
 		if err != nil {
 			glog.Errorf("Invalid UUID format: %v", err)
 			return status.Errorf(codes.InvalidArgument, "invalid UUID format: %v", err)
 		}
 
-		// Get data from service
+		// Get data from service layer
 		data, err := s.service.GetByID(id)
 
 		switch {
@@ -81,7 +85,7 @@ func (s *DataServiceServer) GetDataById(stream pb.DataService_GetDataByIdServer)
 			return status.Errorf(codes.Internal, "internal server error: %v", err)
 		}
 
-		// Convert to proto format
+		// Convert to proto format for response
 		protoData, err := api.DataToProto(data)
 		if err != nil {
 			glog.Errorf("Error converting data to proto: %v", err)
@@ -98,7 +102,9 @@ func (s *DataServiceServer) GetDataById(stream pb.DataService_GetDataByIdServer)
 	}
 }
 
-// ListDataByTimeRange handles bidirectional streaming for listing data by time range
+// ListDataByTimeRange handles bidirectional streaming for listing data by time range.
+// Receives requests with time range parameters, fetches matching data, and streams responses back.
+// Returns a gRPC error if the request is invalid or if no data is found.
 func (s *DataServiceServer) ListDataByTimeRange(stream pb.DataService_ListDataByTimeRangeServer) error {
 	glog.Infoln("ListDataByTimeRange stream started")
 	defer glog.Infoln("ListDataByTimeRange stream ended")
@@ -120,7 +126,7 @@ func (s *DataServiceServer) ListDataByTimeRange(stream pb.DataService_ListDataBy
 			return status.Errorf(codes.InvalidArgument, "request cannot be nil")
 		}
 
-		// Parse time range parameters
+		// Parse time range parameters from request
 		from, err := strconv.ParseInt(req.From, 10, 64)
 		if err != nil {
 			glog.Errorf("Invalid 'from' parameter: %v", err)
@@ -139,9 +145,9 @@ func (s *DataServiceServer) ListDataByTimeRange(stream pb.DataService_ListDataBy
 			return status.Errorf(codes.InvalidArgument, "invalid time range: 'from' must be less than 'to'")
 		}
 
-		// Get data from service
+		// Get data from service layer for the specified period
 		dataList, err := s.service.ListByPeriod(from, to)
-	
+
 		switch {
 		case errors.Is(err, repository.ErrNotFound):
 			glog.Infof("No data found for time range: %d to %d", from, to)
@@ -154,7 +160,7 @@ func (s *DataServiceServer) ListDataByTimeRange(stream pb.DataService_ListDataBy
 			return status.Errorf(codes.Internal, "internal server error: %v", err)
 		}
 
-		// Convert data list to proto format
+		// Convert data list to proto format for response
 		protoDataList := make([]*pb.Data, len(dataList))
 		for i, data := range dataList {
 			protoData, err := api.DataToProto(&data)
@@ -165,7 +171,7 @@ func (s *DataServiceServer) ListDataByTimeRange(stream pb.DataService_ListDataBy
 			protoDataList[i] = protoData
 		}
 
-		// Create response
+		// Create response message
 		response := &pb.ListDataByTimeRangeResponse{
 			DataItems: protoDataList,
 		}

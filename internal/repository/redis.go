@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
 	"strconv"
 	"time"
 	"xis-data-aggregator/internal/api"
 	"xis-data-aggregator/pb"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/redis/go-redis/v9"
 

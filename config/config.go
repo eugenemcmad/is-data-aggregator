@@ -1,7 +1,14 @@
+// Package config provides configuration structures and functions for the XIS Data Aggregator service.
 package config
 
 import "flag"
 
+// workersCount is the default number of workers for reading, aggregating, and saving to the database (tuned for weak test DB).
+// metricsBatchSize is the default number of metrics to batch before processing.
+// restPort is the default port for the REST API server.
+// grpcPort is the default port for the gRPC server.
+// inputIntervalMs is the default interval (in milliseconds) for input simulation (tuned for weak test DB).
+// packLength is the default length of a data pack.
 const (
 	workersCount     = 5 // for weak test db
 	metricsBatchSize = 10
@@ -11,23 +18,28 @@ const (
 	packLength       = 10
 )
 
+// XisDataAggregatorConfig holds all configuration parameters for the XIS Data Aggregator service.
 type XisDataAggregatorConfig struct {
-	//SqliteConfig
-	//RedisConfig
+	// WorkersCount is the number of workers for reading, aggregating, and saving to the database.
+	WorkersCount int
 
-	WorkersCount int // Count of workers for read, aggregate and save to db.
-
+	// RestPort is the port for the REST API server.
 	RestPort int
+	// GrpcPort is the port for the gRPC server.
 	GrpcPort int
 
+	// MetricsBatchSize is the number of metrics to batch before processing.
 	MetricsBatchSize int
 
-	// Simulation
+	// Simulation parameters
+	// InputIntervalMs is the interval (in milliseconds) for input simulation.
 	InputIntervalMs int
-	PackLength      int
+	// PackLength is the length of a data pack.
+	PackLength int
 }
 
-// GetXisDataAggregatorConfig default config init instead of such tools as Consul for example
+// GetXisDataAggregatorConfig initializes and returns a default XisDataAggregatorConfig.
+// This function provides a default config instead of using external tools like Consul.
 func GetXisDataAggregatorConfig() (*XisDataAggregatorConfig, error) {
 
 	config := XisDataAggregatorConfig{
@@ -40,9 +52,10 @@ func GetXisDataAggregatorConfig() (*XisDataAggregatorConfig, error) {
 	}
 
 	return &config, nil
-
 }
 
+// UpdateConfigFromFlags updates the configuration fields from command-line flags if provided.
+// Only non-zero flag values will override the existing config values.
 func (cfg *XisDataAggregatorConfig) UpdateConfigFromFlags() {
 	var workersCount, metricsBatchSize, restPort, grpcPort, inputIntervalMs, packLength int
 

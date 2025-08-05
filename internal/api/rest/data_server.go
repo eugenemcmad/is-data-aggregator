@@ -1,3 +1,4 @@
+// Package rest provides HTTP handlers for data operations using the Gin framework.
 package rest
 
 import (
@@ -12,12 +13,14 @@ import (
 	"github.com/google/uuid"
 )
 
-type DataHandler struct {
-	service *service.DataService
+// DataServiceServer handles HTTP requests for data operations.
+type DataServiceServer struct {
+	service *service.DataService // Business logic service
 }
 
-func NewDataHandler(service *service.DataService) *DataHandler {
-	return &DataHandler{service: service}
+// NewDataServiceServer creates a new DataServiceServer with the provided service.
+func NewDataServiceServer(service *service.DataService) *DataServiceServer {
+	return &DataServiceServer{service: service}
 }
 
 // GetByID godoc
@@ -30,7 +33,9 @@ func NewDataHandler(service *service.DataService) *DataHandler {
 // @Failure      404  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /data/{id} [get]
-func (h *DataHandler) GetByID(c *gin.Context) {
+// GetByID handles GET requests to fetch a data item by its UUID.
+// Responds with 400 if the UUID is invalid, 404 if not found, or 500 for internal errors.
+func (h *DataServiceServer) GetByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
@@ -65,7 +70,9 @@ func (h *DataHandler) GetByID(c *gin.Context) {
 // @Failure      404  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /data [get]
-func (h *DataHandler) ListByTimeRange(c *gin.Context) {
+// ListByTimeRange handles GET requests to fetch data items within a specified time range.
+// Responds with 400 if parameters are invalid, 404 if no data found, or 500 for internal errors.
+func (h *DataServiceServer) ListByTimeRange(c *gin.Context) {
 	fromStr := c.Query("from")
 	toStr := c.Query("to")
 	from, err1 := strconv.ParseInt(fromStr, 10, 64)

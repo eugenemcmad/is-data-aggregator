@@ -3,35 +3,26 @@ package main
 import (
 	"flag"
 	"fmt"
-	"google.golang.org/grpc"
 	"net"
 	"runtime/debug"
 	"sync"
 	"time"
-	grpcapi "xis-data-aggregator/internal/api/grpc"
-
-	"github.com/gin-gonic/gin"
+	"xis-data-aggregator/config"
 	_ "xis-data-aggregator/docs"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
+	grpcapi "xis-data-aggregator/internal/api/grpc"
 	"xis-data-aggregator/internal/api/rest"
 	"xis-data-aggregator/internal/metrics"
 	"xis-data-aggregator/internal/mocks"
 	"xis-data-aggregator/internal/models"
 	"xis-data-aggregator/internal/repository"
-
-	"github.com/golang/glog"
-
-	"xis-data-aggregator/config"
 	"xis-data-aggregator/internal/service"
 	"xis-data-aggregator/pkg/utils"
-)
 
-var (
-	// BuildVersion is set on compile time.
-	BuildVersion string
+	"github.com/gin-gonic/gin"
+	"github.com/golang/glog"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"google.golang.org/grpc"
 )
 
 // @title           XIS Data Aggregator API
@@ -39,30 +30,30 @@ var (
 // @description     This is the API for the XIS Data Aggregator service.
 // @host      localhost:8080 // Or your actual host and port
 // @BasePath  /api/v1 // Base path for your API endpoints
+// Entry point for the XIS Data Aggregator service
 func main() {
+	// Defer a panic handler to log any unexpected errors and flush logs on exit
 	defer func() {
 		if r := recover(); r != nil {
+			// Note: Use `glog` without parameters. Default directory is ./tmp.
 			glog.Errorln(utils.PanicErrStr(r, debug.Stack(), "main"))
 		}
 
-		glog.Flush()
+		glog.Flush() // Flush logs.
 	}()
 
-	flag.Parse()
-	_ = flag.Set("log_dir", "c:\\TEMP") // todo rm
+	flag.Parse() // Parse command-line flags
 
-	glog.Infof("Build version %s", BuildVersion)
-
-	// Read and fill config
+	// Read configuration from file/environment and handle errors
 	cfg, err := config.GetXisDataAggregatorConfig()
 	if err != nil {
 		glog.Fatalf("init fail, config.GetXisDataAggregatorConfig() error: %v", err)
 	}
 
-	// Update config from flags if set
+	// Optionally override config values with command-line flags
 	cfg.UpdateConfigFromFlags()
 
-	// Connect DB
+	// Initialize Redis repository (database connection)
 	repo, err := repository.NewRedisRepository()
 	defer func(repo *repository.RedisRepository) {
 		err := repo.Close()
@@ -72,9 +63,10 @@ func main() {
 	}(repo)
 	glog.Infoln("Connected to DB")
 
+	// Create the main data service with the repository
 	var dataService = service.NewDataService(repo)
 
-	// Init channels
+	// Initialize channels for inter-goroutine communication
 	inputPacks := make(chan *models.Pack)
 	metricsChan := make(chan bool)
 	stopChan := make(chan struct{})
@@ -88,11 +80,11 @@ func main() {
 	 * signal.Notify(sgnChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 	 */
 
-	// Init, start, stop async running
+	// Use a WaitGroup to manage goroutines and ensure clean shutdown
 	var wg sync.WaitGroup
 	defer wg.Wait() // Wait for all valuable goroutines to finish
 
-	// Create and start metrics collector
+	// Create and start the metrics collector goroutine
 	metricsCollector := metrics.Collector{
 		ProcessingResult: metrics.ProcessingResult{},
 		InputChannel:     metricsChan,
@@ -101,12 +93,13 @@ func main() {
 	wg.Add(1)
 	glog.Infoln("Metrics collector started")
 
-	// Start data consuming and processing.
+	// Start worker goroutines for data processing
 	for i := 0; i < cfg.WorkersCount; i++ {
 		go service.ProcessData(&wg, dataService, inputPacks, metricsChan)
 		wg.Add(1)
 	}
 
+	// Create and start the mock input pack generator (simulates incoming data)
 	inputPacksGenerator := mocks.InputPacksGenerator{
 		Interval:   time.Duration(cfg.InputIntervalMs) * time.Millisecond,
 		PackLength: cfg.PackLength,
@@ -116,7 +109,7 @@ func main() {
 	go inputPacksGenerator.Start(cfg)
 	glog.Infoln("Pack generator started")
 
-	// Start gRPC server in a goroutine
+	// Start the gRPC server in a separate goroutine
 	go func() {
 		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GrpcPort)) // /api/v2
 		if err != nil {
@@ -132,8 +125,9 @@ func main() {
 		}
 	}()
 
-	gin.SetMode(gin.DebugMode) // todo: gin.SetMode(gin.ReleaseMode)
-	h := rest.NewDataHandler(dataService)
+	// Set up and start the REST API server using Gin
+	gin.SetMode(gin.ReleaseMode)
+	h := rest.NewDataServiceServer(dataService)
 	r := gin.Default()
 
 	v1 := r.Group("/api/v1")
@@ -141,7 +135,7 @@ func main() {
 	v1.GET("data", h.ListByTimeRange)
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Start REST server
+	// Start the REST server and listen for HTTP requests
 	glog.Infof("REST Server starting on port %d", cfg.RestPort)
 	err = r.Run(fmt.Sprintf(":%d", cfg.RestPort))
 	if err != nil {

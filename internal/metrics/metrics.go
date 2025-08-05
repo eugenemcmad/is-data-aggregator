@@ -1,21 +1,32 @@
+// Package metrics provides simple in-memory metrics collection for processing results.
 package metrics
 
 import (
-	"github.com/golang/glog"
 	"sync"
 	"xis-data-aggregator/config"
+
+	"github.com/golang/glog"
 )
 
+// ProcessingResult holds counters for successful and failed processing attempts.
 type ProcessingResult struct {
+	// SuccessfullyCount is the number of successfully processed items.
 	SuccessfullyCount int
-	FailedCount       int
+	// FailedCount is the number of failed processing attempts.
+	FailedCount int
 }
 
+// Collector collects processing metrics from an input channel.
 type Collector struct {
+	// ProcessingResult stores the current counts of successes and failures.
 	ProcessingResult ProcessingResult
-	InputChannel     <-chan bool // Note:atomic is more often used for simple metrics
+	// InputChannel receives boolean values indicating processing success (true) or failure (false).
+	InputChannel <-chan bool // Note:atomic is more often used for simple metrics
 }
 
+// Start begins collecting metrics from the InputChannel and logs batch results.
+// It should be run as a goroutine and will signal completion on the provided WaitGroup.
+// Metrics are logged every cfg.MetricsBatchSize successful or failed items.
 func (o *Collector) Start(wg *sync.WaitGroup, cfg *config.XisDataAggregatorConfig) {
 	defer wg.Done()
 	// Use log for metrics instead of tools as prometheus for example
