@@ -1,0 +1,36 @@
+// data.proto
+syntax = "proto3";
+
+package data;
+
+option go_package = "./pb";
+
+service DataService {
+
+  rpc GetDataById (stream GetDataByIDRequest) returns (stream Data);
+
+  rpc ListDataByTimeRange  (stream ListDataByTimeRangeRequest) returns (stream ListDataByTimeRangeResponse);
+}
+
+// Single request
+message GetDataByIDRequest  {
+  string id = 1;
+}
+
+// Request of packet
+message ListDataByTimeRangeRequest  {
+  string from = 1;
+  string to = 2;
+}
+
+// Single response or part of packet response
+message Data {
+  string id = 1;
+  int64 timestamp = 2;
+  int32 max = 3;
+}
+
+// Packet response
+message ListDataByTimeRangeResponse {
+  repeated Data data_items = 1;
+}
