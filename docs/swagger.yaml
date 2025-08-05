@@ -1,0 +1,98 @@
+basePath: /api/v1 // Base path for your API endpoints
+definitions:
+  models.Data:
+    properties:
+      id:
+        type: string
+      max:
+        type: integer
+      ts:
+        type: integer
+    type: object
+host: localhost:8080 // Or your actual host and port
+info:
+  contact: {}
+  description: This is the API for the XIS Data Aggregator service.
+  title: XIS Data Aggregator API
+  version: "1.0"
+paths:
+  /data:
+    get:
+      description: get data by time range
+      parameters:
+      - description: From timestamp
+        format: int64
+        in: query
+        name: from
+        required: true
+        type: integer
+      - description: To timestamp
+        format: int64
+        in: query
+        name: to
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Data'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List data by time range
+      tags:
+      - data
+  /data/{id}:
+    get:
+      description: get data by UUID
+      parameters:
+      - description: Data ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Data'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get data by ID
+      tags:
+      - data
+swagger: "2.0"
