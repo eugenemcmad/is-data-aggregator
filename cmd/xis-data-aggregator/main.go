@@ -4,8 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"runtime/debug"
 	"sync"
+	"syscall"
 	"time"
 	"xis-data-aggregator/config"
 	_ "xis-data-aggregator/docs"
@@ -70,19 +73,19 @@ func main() {
 	inputPacks := make(chan *models.Pack)
 	metricsChan := make(chan bool)
 	stopChan := make(chan struct{})
+	sigChan := make(chan os.Signal)
 	glog.Infoln("Channels created")
 
-	/*
-	 * Note: It is a good practice to additionally intercept system interrupts
-	 * for correct system shutdown:
-	 *
-	 * sigChan := make(chan os.Signal)
-	 * signal.Notify(sigChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	 */
+	// Set up signal handling
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Use a WaitGroup to manage goroutines and ensure clean shutdown
 	var wg sync.WaitGroup
-	defer wg.Wait() // Wait for all valuable goroutines to finish
+	defer func() {
+		glog.Infoln("Waiting for goroutines to finish...")
+		wg.Wait() // Wait for all valuable goroutines to finish
+		glog.Infoln("All valuable goroutines successfully finished.\n Exiting...")
+	}()
 
 	// Create and start the metrics collector goroutine
 	metricsCollector := metrics.Collector{
@@ -136,16 +139,18 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Start the REST server and listen for HTTP requests
-	glog.Infof("REST Server starting on port %d", cfg.RestPort)
-	err = r.Run(fmt.Sprintf(":%d", cfg.RestPort))
-	if err != nil {
-		glog.Fatalf("gin.Run() error: %v", err)
-	}
+	go func() {
+		glog.Infof("REST Server starting on port %d", cfg.RestPort)
+		err = r.Run(fmt.Sprintf(":%d", cfg.RestPort))
+		if err != nil {
+			glog.Fatalf("gin.Run() error: %v", err)
+		}
+	}()
 
-	/*
-	 * Note: usually runs in a separate routine and is called by external signals
-	 * or system interrupts to correctly terminate the service
-	 */
+	// Wait for a signal to initiate a graceful shutdown
+	sig := <-sigChan
+	glog.Infof("Received signal: %v. Starting graceful shutdown...\n", sig)
+
 	glog.Infoln("Sending stop signal to generator...")
 	close(stopChan) // Send signals to all readers.
 }

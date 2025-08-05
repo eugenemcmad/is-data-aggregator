@@ -19,8 +19,9 @@ func ProcessData(wg *sync.WaitGroup, ds *DataService, inputChan <-chan *models.P
 		if err != nil {
 			glog.Errorln("process data error:", err)
 		}
-
 	}
+
+	glog.Infoln("Input channel closed. Stop processing.")
 
 	closeOnce.Do(func() {
 		close(metricsChan)
